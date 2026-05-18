@@ -8,38 +8,45 @@ import re
 import time
 import logging
 
-from google import genai
+from openai import OpenAI
 from duckduckgo_search import DDGS
 from newspaper import Article
 
-from cfg import GEMINI_API_KEY
+from cfg import OPENROUTER_API_KEY
 
 # ─── Настройка логирования ───────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-# ─── Инициализация Gemini ────────────────────────────────────────────────────
-client = genai.Client(api_key=GEMINI_API_KEY)
+# ─── Инициализация OpenRouter ────────────────────────────────────────────────
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
 
-# Список моделей: если первая вернёт 429, попробуем следующую
-MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
+# Список моделей: если первая вернёт ошибку квоты/лимита — попробуем следующую
+MODELS = [
+    "openrouter/owl-alpha",
+]
 
 
-def _call_gemini(prompt: str, max_retries: int = 3) -> str:
+def _call_ai(prompt: str, max_retries: int = 3) -> str:
     """
-    Вызывает Gemini с автоматическим retry и fallback на другие модели.
+    Вызывает OpenRouter с автоматическим retry и fallback на другие модели.
     При ошибке 429 ждёт 30 секунд и пробует снова / другую модель.
     """
     for model_name in MODELS:
         for attempt in range(1, max_retries + 1):
             try:
                 logger.info("📡 Запрос к %s (попытка %d)...", model_name, attempt)
-                response = client.models.generate_content(
-                    model=model_name, contents=prompt
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt}],
                 )
-                return response.text.strip()
+                return response.choices[0].message.content.strip()
             except Exception as e:
-                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                err = str(e)
+                if "429" in err or "rate" in err.lower() or "quota" in err.lower():
                     wait = 30 * attempt
                     logger.warning(
                         "⏳ Квота исчерпана для %s. Жду %dс...", model_name, wait
@@ -49,7 +56,7 @@ def _call_gemini(prompt: str, max_retries: int = 3) -> str:
                     raise
         logger.warning("⚠️ Все попытки для %s исчерпаны, пробую следующую модель...", model_name)
 
-    raise RuntimeError("Все модели Gemini вернули ошибку квоты. Попробуйте позже.")
+    raise RuntimeError("Все модели OpenRouter вернули ошибку квоты. Попробуйте позже.")
 
 # ─── Системные промпты (роли нейросети) ──────────────────────────────────────
 
@@ -84,7 +91,7 @@ BLOCKED_DOMAINS = (
 
 def get_search_query(topic: str) -> str:
     """
-    Отправляет тему в Gemini 1.5 Flash и получает узкий поисковый запрос.
+    Отправляет тему в AI и получает узкий поисковый запрос.
 
     Args:
         topic: Общая тема (например, «Нейросети» или «Космос»).
@@ -95,7 +102,7 @@ def get_search_query(topic: str) -> str:
     logger.info("🔍 Planner: генерирую поисковый запрос для темы «%s»...", topic)
 
     prompt = f"{PLANNER_PROMPT}\n\nТема: {topic}"
-    raw = _call_gemini(prompt)
+    raw = _call_ai(prompt)
     query = raw.strip('"').strip("'")
 
     logger.info("✅ Planner вернул запрос: «%s»", query)
@@ -188,7 +195,7 @@ def scrape_articles(urls: list) -> str:
 
 def generate_final_post(raw_text: str) -> str:
     """
-    Отправляет сырой текст в Gemini вместе с EDITOR_PROMPT.
+    Отправляет сырой текст в AI вместе с EDITOR_PROMPT.
     Получает готовый, отформатированный Telegram-пост.
 
     Args:
@@ -199,11 +206,11 @@ def generate_final_post(raw_text: str) -> str:
     """
     logger.info("✍️ Editor: генерирую финальный пост...")
 
-    # Ограничиваем входной текст (лимит контекста Gemini)
+    # Ограничиваем входной текст
     trimmed = raw_text[:8000]
 
     prompt = f"{EDITOR_PROMPT}\n\nСырой текст:\n\n{trimmed}"
-    post = _call_gemini(prompt)
+    post = _call_ai(prompt)
 
     logger.info("✅ Editor сгенерировал пост (%d символов)", len(post))
     return post

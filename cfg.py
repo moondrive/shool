@@ -4,3 +4,4 @@ CHANNEL_ID = '@trysmthhhh'
 
 # API-ключ Gemini (получить на https://aistudio.google.com/)
 GEMINI_API_KEY = 'AIzaSyCru9J21YodGdkgCosy3uZQTUNwRZPP2m0'
+OPENROUTER_API_KEY = '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'
