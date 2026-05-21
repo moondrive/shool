@@ -8,7 +8,7 @@ __pycache__/
 dist/
 build/
 .eggs/
-
+private_cfg.py
 # Virtual environments
 venv/
 .venv/

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Портфолио учащегося — учёба, проекты, достижения и экскурсии">
+    <title>Моё портфолио — Ученик</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ═══════════════════════ НАВИГАЦИЯ ═══════════════════════ -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#home" class="nav-logo">
+                <span class="logo-icon">🎓</span>
+                <span class="logo-text">Портфолио</span>
+            </a>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="#home" class="nav-link active" data-tab="home">Главная</a></li>
+                <li><a href="#study" class="nav-link" data-tab="study">Учёба</a></li>
+                <li><a href="#college" class="nav-link" data-tab="college">Колледж</a></li>
+                <li><a href="#excursions" class="nav-link" data-tab="excursions">Экскурсии</a></li>
+                <li><a href="#projects" class="nav-link" data-tab="projects">Проекты</a></li>
+                <li><a href="#achievements" class="nav-link" data-tab="achievements">Достижения</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Меню">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ═══════════════════════ ГЛАВНАЯ ═══════════════════════ -->
+    <section class="tab-content active" id="home">
+        <div class="hero">
+            <div class="hero-bg-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+                <div class="shape shape-3"></div>
+            </div>
+            <div class="hero-content">
+                <div class="hero-avatar">
+                    <div class="avatar-ring"></div>
+                    <div class="avatar-placeholder">👤</div>
+                </div>
+                <p class="hero-greeting animate-fade-up">Привет, я</p>
+                <h1 class="hero-name animate-fade-up delay-1">Филимонов Василий</h1>
+                <p class="hero-subtitle animate-fade-up delay-2">Ученик 10 класса • Увлекаюсь программированием и наукой</p>
+            </div>
+        </div>
+
+        <!-- Краткая информация -->
+        <div class="container section-pad">
+            <div class="about-grid">
+                <div class="about-card glass-card">
+                    <h3 class="card-title">📌 Обо мне</h3>
+                    <div class="about-info">
+                        <div class="info-row">
+                            <span class="info-label">ФИО</span>
+                            <span class="info-value">Филимонов Василий</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Дата рождения</span>
+                            <span class="info-value">08.02.2010</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Школа</span>
+                            <span class="info-value">ГБОУ Школа № 2009</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Класс</span>
+                            <span class="info-value">10 «Д»</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Город</span>
+                            <span class="info-value">Москва</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-card glass-card">
+                    <h3 class="card-title">🎯 Мои цели</h3>
+                    <p class="about-text">
+                        Стремлюсь к знаниям и постоянному развитию. Мечтаю поступить в ведущий технический вуз и 
+                        связать свою жизнь с IT-технологиями.
+                    </p>
+                    <div class="about-interests">
+                        <span class="interest-tag">💻 Программирование</span>
+                        <span class="interest-tag"> Информатика</span>
+                        <span class="interest-tag">📐 Математика</span>
+                        <span class="interest-tag"> Дизайн</span>
+                        <span class="interest-tag">📚 Чтение</span>
+                        <span class="interest-tag"> Спорт</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Контакты -->
+            <h2 class="section-title title-center mt-64"><span class="title-icon">📬</span> Контакты</h2>
+            <div class="contacts-grid">
+                <div class="contact-card glass-card">
+                    <span class="contact-icon">📧</span>
+                    <h3>Email</h3>
+                    <a href="mailto:filimonov.v@sch2009.net">filimonov.v@sch2009.net</a>
+                </div>
+                <div class="contact-card glass-card">
+                    <span class="contact-icon">📱</span>
+                    <h3>Телефон</h3>
+                    <a href="tel:+79001234567">+7 (968) 504-33-77</a>
+                </div>
+                <div class="contact-card glass-card">
+                    <span class="contact-icon">💬</span>
+                    <h3>Telegram</h3>
+                    <a href="https://t.me/Lordlki" target="_blank">@Lordlki</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ УЧЁБА ═══════════════════════ -->
+    <section class="tab-content" id="study">
+        <div class="container page-section">
+            <h2 class="section-title"><span class="title-icon">📖</span> Учёба</h2>
+
+            <!-- Успеваемость -->
+            <div class="study-block glass-card">
+                <h3 class="card-title">📊 Успеваемость</h3>
+                <div class="grades-grid">
+                    <div class="grade-item">
+                        <span class="grade-subject">Алгебра</span>
+                        <span class="grade-value grade-4">3.62</span>
+                    </div>
+                    <div class="grade-item">
+                        <span class="grade-subject">Геометрия</span>
+                        <span class="grade-value grade-4">3.9</span>
+                    </div>
+                    <div class="grade-item">
+                        <span class="grade-subject">Программирование</span>
+                        <span class="grade-value grade-4">3.62</span>
+                    </div>
+                    <div class="grade-item">
+                        <span class="grade-subject">Информатика</span>
+                        <span class="grade-value grade-4">3.79</span>
+                    </div>
+                    <div class="grade-item">
+                        <span class="grade-subject">Русский язык</span>
+                        <span class="grade-value grade-4">3.58</span>
+                    </div>
+                    <div class="grade-item">
+                        <span class="grade-subject">Литература</span>
+                        <span class="grade-value grade-4">4.27</span>
+                    </div>
+                    <div class="grade-item">
+                        <span class="grade-subject">Химия</span>
+                        <span class="grade-value grade-5">4.6</span>
+                    </div>
+                    <div class="grade-item">
+                        <span class="grade-subject">Обществознание</span>
+                        <span class="grade-value grade-4">4.0</span>
+                    </div>
+
+                </div>
+            </div>
+            <!-- Доп. образование -->
+            <div class="study-block glass-card">
+                <h3 class="card-title">🎓 Дополнительное образование</h3>
+                <div class="extra-edu-list">
+                    <div class="extra-edu-item">
+                        <span class="edu-icon">🎓</span>
+                        <div>
+                            <h4>Яндекс Лицей — 1-й год обучения (завершён)</h4>
+                            <p>Курс по Python: основы, алгоритмы, ООП • 2024–2025</p>
+                        </div>
+                    </div>
+                    <div class="extra-edu-item">
+                        <span class="edu-icon">🚀</span>
+                        <div>
+                            <h4>Яндекс Практикум — обучение</h4>
+                            <p>Курс по бэкенд-разработке на Python (Django) • в процессе</p>
+                        </div>
+                    </div>
+                    <div class="extra-edu-item">
+                        <span class="edu-icon">🏫</span>
+                        <div>
+                            <h4>Школа 21 — участие в мероприятии</h4>
+                            <p>Образовательное мероприятие от Школы 21 (Сбер)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ КОЛЛЕДЖ ═══════════════════════ -->
+    <section class="tab-content" id="college">
+        <div class="container page-section">
+            <h2 class="section-title"><span class="title-icon">🏫</span> Колледж</h2>
+
+            <div class="college-hero glass-card" style="text-align: center; padding: 50px;">
+                <div class="college-hero-content">
+                    <span class="college-badge" style="background: var(--accent-1); margin-bottom: 20px;">Выпускник</span>
+                    <h3 style="font-size: 1.8rem; margin-bottom: 20px;">Профессиональное обучение (Колледж)</h3>
+                    <p style="font-size: 1.1rem; max-width: 700px; margin: 0 auto; color: var(--text-secondary);">
+                        Являюсь отличником профессионального обучения. По окончании программы получил свидетельства, подтверждающие квалификацию и высокий уровень знаний.
+                    </p>
+                </div>
+            </div>
+
+            <div class="study-block glass-card mt-64">
+                <h3 class="card-title">📜 Свидетельство о профессии</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6;">
+                    ГБПОУ города Москвы <strong>«Технологический колледж № 34»</strong><br>
+                    Квалификация: <strong>Оператор электронно-вычислительных и вычислительных машин 2 разряда</strong>
+                </p>
+                <div style="display: flex; gap: 24px; justify-content: center; margin-top: 16px; flex-wrap: wrap;">
+                    <img src="images/photo_2026-05-21_12-05-37.jpg" alt="Свидетельство (лицевая сторона)" style="max-height: 450px; max-width: 100%; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-glow);">
+                    <img src="images/photo_2026-05-21_12-05-35.jpg" alt="Свидетельство (оценки)" style="max-height: 450px; max-width: 100%; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow-glow);">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ ЭКСКУРСИИ ═══════════════════════ -->
+    <section class="tab-content" id="excursions">
+        <div class="container page-section">
+            <h2 class="section-title"><span class="title-icon">🗺️</span> Экскурсии</h2>
+
+            <div class="excursions-grid">
+                <div class="excursion-card glass-card">
+                    <div class="excursion-image" style="--accent: #21a038;">
+                        <span class="excursion-emoji">🏦</span>
+                    </div>
+                    <div class="excursion-content">
+                        <span class="excursion-date">📅 Март 2026</span>
+                        <h3>Офис Сбера и Школа 21</h3>
+                        <p>Экскурсия в кампус Школы 21 и технологический хаб Сбера. Познакомились с методикой peer-to-peer обучения и работой IT-команд.</p>
+                        <div class="excursion-tags">
+                            <span class="tag">IT</span>
+                            <span class="tag">Финтех</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="excursion-card glass-card">
+                    <div class="excursion-image" style="--accent: #00b4d8;">
+                        <span class="excursion-emoji">🎓</span>
+                    </div>
+                    <div class="excursion-content">
+                        <span class="excursion-date">📅 Октябрь 2025</span>
+                        <h3>РТУ МИРЭА</h3>
+                        <p>Посещение дня открытых дверей в Российском технологическом университете. Экскурсия по лабораториям и знакомство с направлениями.</p>
+                        <div class="excursion-tags">
+                            <span class="tag">ВУЗ</span>
+                            <span class="tag">Профориентация</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="excursion-card glass-card">
+                    <div class="excursion-image" style="--accent: #e17055;">
+                        <span class="excursion-emoji">💻</span>
+                    </div>
+                    <div class="excursion-content">
+                        <span class="excursion-date">📅 Май 2025</span>
+                        <h3>Офис компании 1С</h3>
+                        <p>Экскурсия в центральный офис компании 1С. Знакомство с процессами разработки ПО и корпоративной культурой ведущей IT-компании.</p>
+                        <div class="excursion-tags">
+                            <span class="tag">IT</span>
+                            <span class="tag">Разработка</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="excursion-card glass-card">
+                    <div class="excursion-image" style="--accent: #a855f7;">
+                        <span class="excursion-emoji">🏛️</span>
+                    </div>
+                    <div class="excursion-content">
+                        <span class="excursion-date">📅 Февраль 2025</span>
+                        <h3>Музей современной истории России</h3>
+                        <p>Школьная экскурсия по экспозициям музея. Изучение исторических событий России конца XIX - начала XXI века.</p>
+                        <div class="excursion-tags">
+                            <span class="tag">История</span>
+                            <span class="tag">Культура</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ ПРОЕКТЫ ═══════════════════════ -->
+    <section class="tab-content" id="projects">
+        <div class="container page-section">
+            <h2 class="section-title"><span class="title-icon">💡</span> Проекты</h2>
+
+            <div class="projects-grid">
+                <div class="project-card glass-card">
+                    <div class="project-image" style="--accent: #6c5ce7;">
+                        <span class="project-emoji">🤖</span>
+                    </div>
+                    <div class="project-content">
+                        <div class="project-tags">
+                            <span class="tag">Python</span>
+                            <span class="tag">Aiogram 3</span>
+                            <span class="tag">OpenRouter</span>
+                            <span class="tag">SQLite</span>
+                        </div>
+                        <h3 class="project-title">SmartPost Bot</h3>
+                        <p class="project-desc">Telegram-бот с искусственным интеллектом (Google Gemini) для автоматической 
+                           генерации и рассылки контента подписчикам. Поддерживает управление подписками, 
+                           статистику, планирование публикаций и админ-панель.</p>
+                        <div class="project-links">
+                            <a href="#" class="project-link">Подробнее →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card glass-card">
+                    <div class="project-image" style="--accent: #00b894;">
+                        <span class="project-emoji">📝</span>
+                    </div>
+                    <div class="project-content">
+                        <div class="project-tags">
+                            <span class="tag">Python</span>
+                            <span class="tag">Django</span>
+                            <span class="tag">SQLite</span>
+                        </div>
+                        <h3 class="project-title">Blogicum</h3>
+                        <p class="project-desc">Полноценная блог-платформа на Django. Публикация постов с изображениями, 
+                           комментарии, категории и локации, профили пользователей с аватарами, 
+                           пагинация и кастомные страницы ошибок.</p>
+                        <div class="project-links">
+                            <a href="#" class="project-link">Подробнее →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card glass-card">
+                    <div class="project-image" style="--accent: #e17055;">
+                        <span class="project-emoji">🧪</span>
+                    </div>
+                    <div class="project-content">
+                        <div class="project-tags">
+                            <span class="tag">Python</span>
+                            <span class="tag">Django</span>
+                            <span class="tag">Pytest</span>
+                            <span class="tag">Unittest</span>
+                        </div>
+                        <h3 class="project-title">TestLab</h3>
+                        <p class="project-desc">Комплексное тестирование двух Django-приложений: новостной портал (YaNews) 
+                           и сервис заметок (YaNote). Полное покрытие тестами маршрутов, контента, 
+                           бизнес-логики и безопасности.</p>
+                        <div class="project-links">
+                            <a href="#" class="project-link">Подробнее →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ ДОСТИЖЕНИЯ ═══════════════════════ -->
+    <section class="tab-content" id="achievements">
+        <div class="container page-section">
+            <h2 class="section-title"><span class="title-icon">🏆</span> Достижения</h2>
+
+            <!-- Стек технологий -->
+            <h3 class="subsection-title">⚡ Стек технологий</h3>
+            <div class="stack-grid">
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🐍</span>
+                    <span class="stack-name">Python</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">⚙️</span>
+                    <span class="stack-name">C++</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🌐</span>
+                    <span class="stack-name">Django</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🐘</span>
+                    <span class="stack-name">PostgreSQL</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🗄️</span>
+                    <span class="stack-name">SQLite</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🧪</span>
+                    <span class="stack-name">Pytest</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">✅</span>
+                    <span class="stack-name">Unittest</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🤖</span>
+                    <span class="stack-name">Telebot</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">📡</span>
+                    <span class="stack-name">Aiogram</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🔮</span>
+                    <span class="stack-name">Gemini AI</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">📄</span>
+                    <span class="stack-name">HTML / CSS</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🐙</span>
+                    <span class="stack-name">Git</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">💻</span>
+                    <span class="stack-name">Git Bash</span>
+                </div>
+                <div class="stack-card glass-card">
+                    <span class="stack-icon">🐹</span>
+                    <span class="stack-name">Go</span>
+                </div>
+            </div>
+
+            <!-- Сертификаты -->
+            <h2 class="section-title mt-64"><span class="title-icon">📜</span> Сертификаты</h2>
+            <div class="certs-grid">
+                <div class="cert-card glass-card">
+                    <span class="cert-icon">🎓</span>
+                    <h4>Сертификат Яндекс Лицея</h4>
+                    <p>1-й год обучения — курс «Python» • 2024–2025</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ ФУТЕР ═══════════════════════ -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 Портфолио ученика. Все права защищены.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

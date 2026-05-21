@@ -6,40 +6,48 @@
 
 import re
 import time
+import random
 import logging
 
-from google import genai
-from duckduckgo_search import DDGS
+from openai import OpenAI
+from ddgs import DDGS
 from newspaper import Article
 
-from cfg import GEMINI_API_KEY
+from cfg import OPENROUTER_API_KEY
 
 # ─── Настройка логирования ───────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-# ─── Инициализация Gemini ────────────────────────────────────────────────────
-client = genai.Client(api_key=GEMINI_API_KEY)
+# ─── Инициализация OpenRouter ────────────────────────────────────────────────
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
 
-# Список моделей: если первая вернёт 429, попробуем следующую
-MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
+# Список моделей: если первая вернёт ошибку квоты/лимита — попробуем следующую
+MODELS = [
+    "openrouter/owl-alpha",
+]
 
 
-def _call_gemini(prompt: str, max_retries: int = 3) -> str:
+def _call_ai(prompt: str, max_retries: int = 3) -> str:
     """
-    Вызывает Gemini с автоматическим retry и fallback на другие модели.
+    Вызывает OpenRouter с автоматическим retry и fallback на другие модели.
     При ошибке 429 ждёт 30 секунд и пробует снова / другую модель.
     """
     for model_name in MODELS:
         for attempt in range(1, max_retries + 1):
             try:
                 logger.info("📡 Запрос к %s (попытка %d)...", model_name, attempt)
-                response = client.models.generate_content(
-                    model=model_name, contents=prompt
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt}],
                 )
-                return response.text.strip()
+                return response.choices[0].message.content.strip()
             except Exception as e:
-                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                err = str(e)
+                if "429" in err or "rate" in err.lower() or "quota" in err.lower():
                     wait = 30 * attempt
                     logger.warning(
                         "⏳ Квота исчерпана для %s. Жду %dс...", model_name, wait
@@ -49,7 +57,7 @@ def _call_gemini(prompt: str, max_retries: int = 3) -> str:
                     raise
         logger.warning("⚠️ Все попытки для %s исчерпаны, пробую следующую модель...", model_name)
 
-    raise RuntimeError("Все модели Gemini вернули ошибку квоты. Попробуйте позже.")
+    raise RuntimeError("Все модели OpenRouter вернули ошибку квоты. Попробуйте позже.")
 
 # ─── Системные промпты (роли нейросети) ──────────────────────────────────────
 
@@ -60,13 +68,162 @@ PLANNER_PROMPT = (
     "без кавычек и лишних слов."
 )
 
-EDITOR_PROMPT = (
-    "Ты — профессиональный Telegram-копирайтер. "
-    "На основе предоставленного сырого текста напиши увлекательный пост. "
-    "Используй эмодзи, абзацы и сделай цепляющий заголовок. "
-    "Опирайся ТОЛЬКО на предоставленный текст, не выдумывай факты. "
-    "Пост должен быть на русском языке."
-)
+CONTEXT_PROMPT = """
+Ты — культурный аналитик с чувством юмора. Тебе дадут тему — ответь на 4 вопроса кратко и чётко.
+Цель — дать редактору карточку контекста, чтобы пост был живым и чувствовал персонажа.
+
+ОТВЕЧАЙ НА:
+1. Кто/что это? (краткая суть, чем известен)
+2. Культурный/мемный контекст: мемы, крылатые фразы, характерные черты персонажа/события
+3. Какой тон уместен? (пример: траур, но частично ироничный / технический восторг / чистая ирония и т.д.)
+4. 1–2 фразы/образа/шутки, которые редактор может вплести в пост (если уместно)
+
+Будь кратким — максимум 6–8 предложений. Это справка, не статья.
+Отвечай без заголовков и списков — простой связный текст.
+
+ПРИМЕР (тема: "Чак Норрис умер"):
+Чак Норрис — американский актёр и многократный чемпион по карате, известен прежде всего по роли в "Walker, Texas Ranger". Умер в 86 лет. Окружён огромным мемным культом: "Чак Норрис досчитал до бесконечности дважды", "кслезы Чака Норриса лечат рак" и т.д. Тон: траур, но лёгкая мемная ирония уместна. Можно намекнуть: "человек, который досчитал до бесконечности дважды", но без пошлости.
+"""
+
+# Каждый шаблон задаёт разную структуру поста — выбирается случайно.
+# Общие правила для всех: HTML-теги <b>/<i>, только русский, без выдумок.
+_BASE_RULES = """
+ОБЩИЕ ПРАВИЛА (обязательны для любого формата):
+• Язык: только русский
+• Форматирование: только HTML — <b>жирный</b>, <i>курсив</i>. Никаких * и _
+• Опирайся ТОЛЬКО на предоставленный текст, не выдумывай факты
+• Без заголовков ##, без дефисных списков, без канцелярщины
+• Стиль: разговорный, как рассказываешь другу
+"""
+
+EDITOR_PROMPTS = [
+
+    # 1. Ультракороткий удар — 1 факт, 1 реакция
+    _BASE_RULES + """
+ФОРМАТ «Ультракороткий»:
+Структура (строго):
+  строка 1: эмодзи + <b>заголовок-факт</b> (1 предложение, цепляет с первых слов)
+  строка 2: пустая
+  строка 3: одно предложение — самый сочный факт из текста
+  строка 4: пустая
+  строка 5: короткая эмоциональная реплика от себя (или ничего)
+
+Длина: 80–180 символов без тегов. Краткость — сила.
+
+ПРИМЕР:
+🔥 <b>Хром: одна вкладка — 356 мегабайт</b>
+
+У PS3 было 256 МБ оперативки — и на ней запускали GTA 5 🤌
+""",
+
+    # 2. Нарратив — история без списков и выделений
+    _BASE_RULES + """
+ФОРМАТ «История»:
+Структура:
+  строка 1: эмодзи + <b>заголовок</b>
+  строка 2: пустая
+  строка 3–4: 2–3 предложения подряд, рассказывающих историю. Никаких выделений — просто текст.
+  в конце (опционально): 1 предложение-комментарий
+
+Длина: 150–300 символов без тегов.
+Важно: НЕ используй <b> в теле поста — только в заголовке.
+
+ПРИМЕР:
+🎮 <b>Линукс запустили в Minecraft</b>
+
+Прогер встроил Wayland Compositor прямо в кубач. Теперь в игре можно открыть браузер, фотошоп или даже osu! — приложения добавляются как айтемы.
+
+Вот это я понимаю — мод
+""",
+
+    # 3. Буллеты — 3 факта через кружки
+    _BASE_RULES + """
+ФОРМАТ «Буллеты»:
+Структура:
+  строка 1: эмодзи + <b>заголовок</b>
+  строка 2: пустая
+  строки 3–5: ровно 3 факта, каждый с новой строки, начинается с ○ или ◾
+             самый важный факт в каждом пункте — <b>жирным</b>
+  строка 6: пустая
+  строка 7: опциональная реплика или ссылка
+
+Длина: 150–280 символов без тегов.
+
+ПРИМЕР:
+⚡ <b>GoofCord — это буквально Discord 2</b>
+
+○ <b>Работает быстрее</b> оригинала, вырезана телеметрия
+○ Чаты можно шифровать паролем, <b>стрим экрана в любом FPS</b>
+○ Уже встроены Vencord/Equicord/Shelter
+
+Качаем имбу с GitHub
+""",
+
+    # 4. Цифра в центре — пост строится вокруг числа/статистики
+    _BASE_RULES + """
+ФОРМАТ «Цифра»:
+Используй, если в тексте есть интересная цифра, дата, процент, рекорд.
+Структура:
+  строка 1: эмодзи + <b>заголовок с цифрой прямо в нём</b>
+  строка 2: пустая
+  строка 3: контекст — почему эта цифра удивляет (1–2 предложения)
+  строка 4: пустая
+  строка 5: опциональное сравнение или реплика
+
+Длина: 120–250 символов без тегов.
+
+ПРИМЕР:
+📉 <b>LEGO Batman утёк за 10 часов до релиза</b>
+
+Игра с <b>84 баллами на Metacritic</b> появилась на торрентах раньше делюкс-владельцев. Это уже 6-я утечка за последние месяцы.
+
+Планы на вечер 🐸
+""",
+
+    # 5. До/После или Было/Стало — контраст
+    _BASE_RULES + """
+ФОРМАТ «Контраст»:
+Используй, если в тексте есть изменение, обновление, сравнение.
+Структура:
+  строка 1: эмодзи + <b>заголовок</b>
+  строка 2: пустая
+  строка 3: «Было: ...» или «Раньше...» — <b>старое состояние</b>
+  строка 4: «Стало: ...» или «Теперь...» — <b>новое состояние</b>
+  строка 5: пустая
+  строка 6: реплика (опционально)
+
+Длина: 130–260 символов без тегов.
+
+ПРИМЕР:
+🔄 <b>Discord обновил голосовые каналы</b>
+
+Раньше: зашёл — сидишь молча, слышишь всех
+Теперь: <b>комнаты внутри канала</b>, раздельный звук, темы — как в Discord Stage
+
+Вот это апдейт
+""",
+
+    # 6. Вопрос → Ответ
+    _BASE_RULES + """
+ФОРМАТ «Вопрос-ответ»:
+Заголовок — вопрос, тело — лаконичный ответ.
+Структура:
+  строка 1: эмодзи + <b>Заголовок в форме вопроса?</b>
+  строка 2: пустая
+  строка 3–4: 2–3 предложения, отвечающих на вопрос. Ключевые слова <b>жирным</b>.
+  строка 5: пустая
+  строка 6: вывод или реакция (1 предложение, опционально)
+
+Длина: 140–280 символов без тегов.
+
+ПРИМЕР:
+🤔 <b>Почему нейросети стали такими умными за год?</b>
+
+Главное — <b>масштаб данных и вычислений</b>. Модели теперь учатся на триллионах токенов, а чипы стали в 3 раза быстрее.
+
+Просто деньги решают
+""",
+]
 
 # ─── Домены, которые нужно отфильтровать ─────────────────────────────────────
 BLOCKED_DOMAINS = (
@@ -84,7 +241,7 @@ BLOCKED_DOMAINS = (
 
 def get_search_query(topic: str) -> str:
     """
-    Отправляет тему в Gemini 1.5 Flash и получает узкий поисковый запрос.
+    Отправляет тему в AI и получает узкий поисковый запрос.
 
     Args:
         topic: Общая тема (например, «Нейросети» или «Космос»).
@@ -95,7 +252,7 @@ def get_search_query(topic: str) -> str:
     logger.info("🔍 Planner: генерирую поисковый запрос для темы «%s»...", topic)
 
     prompt = f"{PLANNER_PROMPT}\n\nТема: {topic}"
-    raw = _call_gemini(prompt)
+    raw = _call_ai(prompt)
     query = raw.strip('"').strip("'")
 
     logger.info("✅ Planner вернул запрос: «%s»", query)
@@ -106,33 +263,66 @@ def get_search_query(topic: str) -> str:
 # 2. SEARCHER — поиск ссылок через DuckDuckGo
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def search_google(query: str) -> list:
+def search_google(query: str, topic: str = "") -> list:
     """
-    Ищет в DuckDuckGo по запросу и возвращает 3-5 ссылок на текстовые сайты.
-    Фильтрует YouTube, соцсети и прочие нетекстовые ресурсы.
+    Ищет новости в DuckDuckGo по запросу и возвращает до 5 ссылок.
+    Сначала пробует news-поиск, при неудаче — text-поиск.
+    Фильтрует нерелевантные результаты по ключевым словам темы.
 
     Args:
         query: Поисковый запрос.
+        topic: Оригинальная тема (для фильтрации нерелевантных результатов).
 
     Returns:
         Список URL-адресов (до 5 штук).
     """
     logger.info("🌐 Searcher: ищу по запросу «%s»...", query)
 
+    # Ключевые слова для фильтрации — берём слова из запроса и темы длиннее 3 символов
+    keywords = [w.lower() for w in (query + " " + topic).split() if len(w) > 3]
+
+    def is_relevant(result: dict) -> bool:
+        """Проверяет, содержит ли заголовок/описание хотя бы одно ключевое слово."""
+        text = (result.get("title", "") + " " + result.get("body", "")).lower()
+        return any(kw in text for kw in keywords)
+
     urls = []
+
+    # Сначала пробуем news-поиск (более актуален и релевантен)
     try:
         with DDGS() as ddgs:
-            results = ddgs.text(query, max_results=10)
+            results = list(ddgs.news(query, max_results=20))
             for r in results:
-                url = r.get("href", "")
-                # Фильтруем заблокированные домены
+                url = r.get("url", r.get("href", ""))
                 if any(domain in url.lower() for domain in BLOCKED_DOMAINS):
+                    continue
+                if keywords and not is_relevant(r):
+                    logger.info("⏭️ Пропускаю нерелевантный результат: %s", r.get("title", ""))
                     continue
                 urls.append(url)
                 if len(urls) >= 5:
                     break
     except Exception as e:
-        logger.error("❌ Ошибка поиска: %s", e)
+        logger.warning("⚠️ News-поиск не сработал: %s", e)
+
+    # Если новостей не нашли — fallback на text-поиск
+    if not urls:
+        logger.info("↩️ Fallback на text-поиск...")
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=20, region="ru-ru", safesearch="off"))
+                for r in results:
+                    url = r.get("href", "")
+                    if any(domain in url.lower() for domain in BLOCKED_DOMAINS):
+                        continue
+                    if keywords and not is_relevant(r):
+                        logger.info("⏭️ Пропускаю нерелевантный результат: %s", r.get("title", ""))
+                        continue
+                    urls.append(url)
+                    if len(urls) >= 5:
+                        break
+        except Exception as e:
+            logger.error("❌ Ошибка поиска: %s", e)
 
     logger.info("✅ Searcher нашёл %d ссылок: %s", len(urls), urls)
     return urls
@@ -159,7 +349,7 @@ def scrape_articles(urls: list) -> str:
 
     for url in urls:
         try:
-            article = Article(url, language="ru")
+            article = Article(url, language="ru", request_timeout=8)
             article.download()
             article.parse()
 
@@ -186,26 +376,34 @@ def scrape_articles(urls: list) -> str:
 # 4. EDITOR — написание итогового поста
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def generate_final_post(raw_text: str) -> str:
+def generate_final_post(raw_text: str, context: str = "") -> str:
     """
-    Отправляет сырой текст в Gemini вместе с EDITOR_PROMPT.
+    Отправляет сырой текст в AI вместе с EDITOR_PROMPT и карточкой контекста.
     Получает готовый, отформатированный Telegram-пост.
 
     Args:
         raw_text: Склеенный текст из нескольких статей.
+        context: Карточка культурного контекста от Context Analyzer (может быть пустой).
 
     Returns:
         Готовый пост для Telegram.
     """
-    logger.info("✍️ Editor: генерирую финальный пост...")
+    # Случайно выбираем один из шаблонов — каждый пост будет уникальным
+    template = random.choice(EDITOR_PROMPTS)
+    template_idx = EDITOR_PROMPTS.index(template) + 1
+    logger.info("✍️ Editor: генерирую пост (шаблон %d/%d)...", template_idx, len(EDITOR_PROMPTS))
 
-    # Ограничиваем входной текст (лимит контекста Gemini)
-    trimmed = raw_text[:8000]
+    trimmed = raw_text[:5000]
 
-    prompt = f"{EDITOR_PROMPT}\n\nСырой текст:\n\n{trimmed}"
-    post = _call_gemini(prompt)
+    # Добавляем контекст, если он есть
+    context_block = ""
+    if context:
+        context_block = f"\n\nКОНТЕКСТ ТЕМЫ (важно!):\n{context}\nИспользуй эту информацию, чтобы пост чувствовал персонажа и был живым. Мемный/культурный контекст можно аккуратно вплести (без пошлости).\n"
 
-    logger.info("✅ Editor сгенерировал пост (%d символов)", len(post))
+    prompt = f"{template}{context_block}\n\nСырой текст:\n\n{trimmed}"
+    post = _call_ai(prompt)
+
+    logger.info("✅ Editor сгенерировал пост шаблон №%d (%d символов)", template_idx, len(post))
     return post
 
 
@@ -230,7 +428,7 @@ def create_autonomous_post(topic: str) -> str:
         query = get_search_query(topic)
 
         # 2. Searcher: запрос → ссылки
-        urls = search_google(query)
+        urls = search_google(query, topic=topic)
         if not urls:
             return "❌ Ошибка: не удалось найти статьи по запросу."
 
@@ -247,6 +445,100 @@ def create_autonomous_post(topic: str) -> str:
     except Exception as e:
         logger.error("💥 Критическая ошибка в цепочке: %s", e)
         return f"❌ Произошла ошибка при генерации поста: {e}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ТОЧКА СБОРКИ 2 — генерация отдельного поста на каждую статью
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def create_posts_per_article(topic: str) -> list:
+    """
+    Context → Planner → Searcher → для каждой статьи: Scraper → Editor.
+    Карточка контекста передаётся в Editor — посты чувствуют персонажа.
+
+    Args:
+        topic: Общая тема (например, «Нейросети»).
+
+    Returns:
+        Список готовых постов (по одному на статью). Пустой список при ошибке.
+    """
+    logger.info("🚀 Запуск генерации постов по статьям на тему «%s»", topic)
+
+    # 0. Context Analyzer: тема → культурный контекст
+    context = ""
+    try:
+        logger.info("🧠 Context: анализирую контекст темы «%s»...", topic)
+        context = _call_ai(f"{CONTEXT_PROMPT}\n\nТема: {topic}")
+        logger.info("✅ Context: карточка готова:\n%s", context)
+    except Exception as e:
+        logger.warning("⚠️ Context Analyzer не сработал, продолжаю без контекста: %s", e)
+
+    # 1. Planner: тема → поисковый запрос
+    query = get_search_query(topic)
+
+    # 2. Searcher: запрос → ссылки
+    urls = search_google(query, topic=topic)
+    if not urls:
+        logger.error("❌ Не удалось найти статьи по запросу «%s»", query)
+        return []
+
+    # 3. Для каждой статьи: Scraper → Editor(с контекстом)
+    posts = []
+    for i, url in enumerate(urls, 1):
+        logger.info("📰 Обрабатываю статью %d/%d: %s", i, len(urls), url)
+        raw = scrape_articles([url])
+        if not raw:
+            logger.warning("⚠️ Пустой текст для %s, пропускаю", url)
+            continue
+        try:
+            post = generate_final_post(raw, context=context)
+            posts.append(post)
+            logger.info("✅ Пост %d сгенерирован (%d символов)", i, len(post))
+        except Exception as e:
+            logger.warning("⚠️ Ошибка генерации поста для %s: %s", url, e)
+            continue
+
+    logger.info("🎉 Итого сгенерировано %d постов из %d статей", len(posts), len(urls))
+    return posts
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ДОРАБОТКА — правка готового поста по комментарию
+# ═══════════════════════════════════════════════════════════════════════════════
+
+REVISE_PROMPT = """
+Ты — редактор Telegram-канала. Тебе дадут готовый пост и комментарий с правками от главного редактора.
+Перепиши пост строго с учётом комментария.
+
+ПРАВИЛА:
+• Сохраняй стиль, формат и длину, если комментарий не просит иного
+• Форматирование: только HTML — <b>жирный</b>, <i>курсив</i>. Никаких * и _
+• Язык: только русский
+• Не выдумывай факты, которых нет в оригинале
+• Верни ТОЛЬКО готовый пост — без пояснений, предисловий и кавычек
+"""
+
+
+def revise_post(post_text: str, comment: str) -> str:
+    """
+    Дорабатывает готовый пост по комментарию редактора.
+
+    Args:
+        post_text: Исходный текст поста (HTML).
+        comment:   Комментарий с правками (например, «сделай короче»).
+
+    Returns:
+        Исправленный пост (HTML).
+    """
+    logger.info("✏️ Reviser: дорабатываю пост по комментарию: «%s»", comment)
+    prompt = (
+        f"{REVISE_PROMPT}\n\n"
+        f"Оригинальный пост:\n{post_text}\n\n"
+        f"Комментарий с правками:\n{comment}"
+    )
+    revised = _call_ai(prompt)
+    logger.info("✅ Reviser: пост доработан (%d символов)", len(revised))
+    return revised
 
 
 # ─── Тестовый запуск ─────────────────────────────────────────────────────────
